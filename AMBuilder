@@ -40,6 +40,10 @@ for sdk_name in MMSPlugin.sdks:
       os.path.join(sdk.path, 'public', 'tier0', 'memoverride.cpp')
     ]
 
+    # Export only CreateInterface
+    if binary.compiler.target.platform == 'linux':
+      binary.compiler.linkflags += ['-Wl,--version-script=' + os.path.join(builder.currentSourcePath, 'ExportMap')]
+
     nodes = builder.Add(binary)
     MMSPlugin.binaries += [nodes]
     
