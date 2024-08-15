@@ -210,8 +210,8 @@ bool AcceleratorLocal::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxl
 	strncpy(crashCommandLine, CommandLine()->GetCmdLine(), sizeof(crashCommandLine) - 1);
 
 	if (late)
-		StartupServer({}, nullptr, nullptr);
-
+		StartupServer({}, nullptr, g_pNetworkServerService->GetIGameServer()->GetMapName());
+	
 	return true;
 }
 
