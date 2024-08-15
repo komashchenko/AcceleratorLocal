@@ -271,7 +271,7 @@ const char* AcceleratorLocal::GetLicense()
 
 const char* AcceleratorLocal::GetVersion()
 {
-	return "1.0.1";
+	return "1.0.2";
 }
 
 const char* AcceleratorLocal::GetDate()
