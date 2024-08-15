@@ -34,6 +34,9 @@
 #include "google_breakpad/processor/process_state.h"
 #include "processor/simple_symbol_supplier.h"
 #include "processor/stackwalk_common.h"
+#include <google_breakpad/processor/call_stack.h>
+#include <google_breakpad/processor/stack_frame.h>
+#include <processor/pathname_stripper.h>
 
 AcceleratorLocal g_AcceleratorLocal;
 PLUGIN_EXPOSE(AcceleratorLocal, g_AcceleratorLocal);
@@ -108,6 +111,59 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, 
 		}
 		else
 		{
+			int requestingThread = processState.requesting_thread();
+			if (requestingThread == -1)
+				requestingThread = 0;
+
+			const google_breakpad::CallStack* stack = processState.threads()->at(requestingThread);
+			size_t frameCount = MIN(stack->frames()->size(), 15);
+
+			auto signal_safe_hex_print = [](uint64_t num)
+			{
+				char buffer[18];
+				char* ptr = buffer + sizeof(buffer);
+
+				if (num == 0)
+					*(--ptr) = '0';
+				else
+				{
+					while (num > 0)
+					{
+						*(--ptr) = "0123456789abcdef"[num % 16];
+						num /= 16;
+					}
+				}
+
+				*(--ptr) = 'x';
+				*(--ptr) = '0';
+
+				size_t length = buffer + sizeof(buffer) - ptr;
+				sys_write(STDOUT_FILENO, ptr, length);
+			};
+
+			sys_write(STDOUT_FILENO, "\n", 1);
+			for (size_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
+			{
+				const google_breakpad::StackFrame* frame = stack->frames()->at(frameIndex);
+
+				uint64_t moduleOffset = frame->ReturnAddress();
+				if (frame->module)
+				{
+					const std::string moduleFile = google_breakpad::PathnameStripper::File(frame->module->code_file());
+					moduleOffset -= frame->module->base_address();
+					sys_write(STDOUT_FILENO, moduleFile.c_str(), moduleFile.size());
+					sys_write(STDOUT_FILENO, " + ", 3);
+					signal_safe_hex_print(moduleOffset);
+					sys_write(STDOUT_FILENO, "\n", 1);
+				}
+				else
+				{
+					sys_write(STDOUT_FILENO, "unknown + ", 10);
+					signal_safe_hex_print(moduleOffset);
+					sys_write(STDOUT_FILENO, "\n", 1);
+				}
+			}
+
 			freopen(dumpStoragePath, "a", stdout);
 			PrintProcessState(processState, true, false, &resolver);
 			fflush(stdout);
