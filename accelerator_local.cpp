@@ -1,7 +1,7 @@
 /**
  * ======================================================
  * Accelerator local
- * Written by Phoenix (˙·٠●Феникс●٠·˙) 2023, Asher Baker (asherkin) 2011.
+ * Written by Phoenix (˙·٠●Феникс●٠·˙) 2023-2024, Asher Baker (asherkin) 2011.
  * ======================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -202,9 +202,9 @@ void AcceleratorLocal::GameFrame(bool simulating, bool bFirstTick, bool bLastTic
 		sigaction(kExceptionSignals[i], &act, NULL);
 }
 
-void AcceleratorLocal::StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*)
+void AcceleratorLocal::StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession*, const char* pszMapName)
 {
-	strncpy(crashMap, g_pNetworkServerService->GetIGameServer()->GetMapName(), sizeof(crashMap) - 1);
+	strncpy(crashMap, pszMapName, sizeof(crashMap) - 1);
 }
 
 ///////////////////////////////////////
