@@ -1,7 +1,7 @@
 /**
  * ======================================================
  * Accelerator local
- * Written by Phoenix (˙·٠●Феникс●٠·˙) 2023, Asher Baker (asherkin) 2011.
+ * Written by Phoenix (˙·٠●Феникс●٠·˙) 2023-2025, Asher Baker (asherkin) 2011.
  * ======================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -17,7 +17,6 @@
 #define _INCLUDE_METAMOD_SOURCE_STUB_PLUGIN_H_
 
 #include <ISmmPlugin.h>
-#include <sh_vector.h>
 #include <iserver.h>
 
 class AcceleratorLocal final : public ISmmPlugin, public IMetamodListener

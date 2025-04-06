@@ -1,7 +1,7 @@
 /**
  * ======================================================
  * Accelerator local
- * Written by Phoenix (˙·٠●Феникс●٠·˙) 2023-2024, Asher Baker (asherkin) 2011.
+ * Written by Phoenix (˙·٠●Феникс●٠·˙) 2023-2025, Asher Baker (asherkin) 2011.
  * ======================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -14,6 +14,7 @@
  */
 
 #include "accelerator_local.h"
+#include "CMiniDumpComment.hpp"
 
 #include "client/linux/handler/exception_handler.h"
 #include "common/linux/linux_libc_support.h"
@@ -47,6 +48,7 @@ char crashCommandLine[1024];
 char dumpStoragePath[512];
 
 google_breakpad::ExceptionHandler* exceptionHandler = nullptr;
+CMiniDumpComment g_MiniDumpComment(95000);
 
 void (*SignalHandler)(int, siginfo_t*, void*);
 const int kExceptionSignals[] = {SIGSEGV, SIGABRT, SIGFPE, SIGILL, SIGBUS};
@@ -88,6 +90,17 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, 
 	sys_write(extra, crashCommandLine, my_strlen(crashCommandLine));
 	sys_write(extra, "\n-------- CONFIG END --------\n", 30);
 	sys_write(extra, "\n", 1);
+	
+	LoggingSystem_GetLogCapture(&g_MiniDumpComment, false);
+	const char* pszConsoleHistory = g_MiniDumpComment.GetStartPointer();
+	
+	if (pszConsoleHistory[0])
+	{
+		sys_write(extra, "-------- CONSOLE HISTORY BEGIN --------\n", 40);
+		sys_write(extra, pszConsoleHistory, my_strlen(pszConsoleHistory));
+		sys_write(extra, "-------- CONSOLE HISTORY END --------\n", 38);
+		sys_write(extra, "\n", 1);
+	}
 	
 	google_breakpad::scoped_ptr<google_breakpad::SimpleSymbolSupplier> symbolSupplier;
 	google_breakpad::BasicSourceLineResolver resolver;
@@ -271,7 +284,7 @@ const char* AcceleratorLocal::GetLicense()
 
 const char* AcceleratorLocal::GetVersion()
 {
-	return "1.0.2";
+	return "1.0.3";
 }
 
 const char* AcceleratorLocal::GetDate()
