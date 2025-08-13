@@ -91,7 +91,7 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, 
 	sys_write(extra, "\n-------- CONFIG END --------\n", 30);
 	sys_write(extra, "\n", 1);
 	
-	LoggingSystem_GetLogCapture(&g_MiniDumpComment, false);
+	LoggingSystem_GetLogCapture(&g_MiniDumpComment, true);
 	const char* pszConsoleHistory = g_MiniDumpComment.GetStartPointer();
 	
 	if (pszConsoleHistory[0])
@@ -284,7 +284,7 @@ const char* AcceleratorLocal::GetLicense()
 
 const char* AcceleratorLocal::GetVersion()
 {
-	return "1.0.3";
+	return "1.0.4";
 }
 
 const char* AcceleratorLocal::GetDate()

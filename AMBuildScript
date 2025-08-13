@@ -221,6 +221,7 @@ class MMSPluginConfig(object):
         '_vsnprintf=vsnprintf',
         'HAVE_STDINT_H',
         'GNUC',
+        '__STDC_FORMAT_MACROS',
       ]
       cxx.cflags += [
         '-pipe',
@@ -233,6 +234,7 @@ class MMSPluginConfig(object):
         '-Wno-register',
         '-Wno-macro-redefined',
         '-Wno-mismatched-tags',
+        '-Wno-ordered-compare-function-pointers',
         '-msse',
         '-fPIC',
       ]
@@ -334,7 +336,7 @@ class MMSPluginConfig(object):
 
     # Platform-specifics
     if cxx.target.platform == 'linux':
-      cxx.defines += ['_LINUX', 'POSIX', '_FILE_OFFSET_BITS=64']
+      cxx.defines += ['_LINUX', 'LINUX', 'POSIX', '_FILE_OFFSET_BITS=64']
       if cxx.family == 'gcc':
         cxx.linkflags += ['-static-libgcc']
       elif cxx.family == 'clang':
