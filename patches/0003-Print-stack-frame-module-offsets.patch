@@ -1,0 +1,33 @@
+diff --git a/src/processor/stackwalk_common.cc b/src/processor/stackwalk_common.cc
+index 094f611..35dbdf3 100644
+--- a/src/processor/stackwalk_common.cc
++++ b/src/processor/stackwalk_common.cc
+@@ -318,21 +318,21 @@ static void PrintFrameHeader(const StackFrame* frame, int frame_index) {
+   uint64_t instruction_address = frame->ReturnAddress();
+ 
+   if (frame->module) {
+-    printf("%s", PathnameStripper::File(frame->module->code_file()).c_str());
++    uint64_t module_offset =
++        instruction_address - frame->module->base_address();
++    printf("%s + 0x%" PRIx64,
++           PathnameStripper::File(frame->module->code_file()).c_str(),
++           module_offset);
+     if (!frame->function_name.empty()) {
+-      printf("!%s", frame->function_name.c_str());
++      printf(" <%s + 0x%" PRIx64 ">", frame->function_name.c_str(),
++             instruction_address - frame->function_base);
+       if (!frame->source_file_name.empty()) {
+         std::string source_file =
+             PathnameStripper::File(frame->source_file_name);
+         printf(" [%s : %d + 0x%" PRIx64 "]", source_file.c_str(),
+                frame->source_line,
+                instruction_address - frame->source_line_base);
+-      } else {
+-        printf(" + 0x%" PRIx64, instruction_address - frame->function_base);
+       }
+-    } else {
+-      printf(" + 0x%" PRIx64,
+-             instruction_address - frame->module->base_address());
+     }
+   } else {
+     printf("0x%" PRIx64, instruction_address);

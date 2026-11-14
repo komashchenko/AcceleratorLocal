@@ -1,0 +1,79 @@
+diff --git a/src/common/linux/elf_symbols_to_module.cc b/src/common/linux/elf_symbols_to_module.cc
+index 2e5c4ee..0dd4952 100644
+--- a/src/common/linux/elf_symbols_to_module.cc
++++ b/src/common/linux/elf_symbols_to_module.cc
+@@ -164,19 +164,24 @@ bool ELFSymbolsToModule(const uint8_t* symtab_section,
+   while(!iterator->at_end) {
+     if (ELF32_ST_TYPE(iterator->info) == STT_FUNC &&
+         iterator->shndx != SHN_UNDEF) {
+-      auto ext = std::make_unique<Module::Extern>(iterator->value);
+-      ext->name = SymbolString(iterator->name_offset, strings);
++      const char* name = SymbolString(iterator->name_offset, strings);
+ #if !defined(__ANDROID__)  // Android NDK doesn't provide abi::__cxa_demangle.
+       int status = 0;
+       char* demangled =
+-          abi::__cxa_demangle(ext->name.c_str(), nullptr, nullptr, &status);
+-      if (demangled) {
+-        if (status == 0)
+-          ext->name = demangled;
+-        free(demangled);
++          abi::__cxa_demangle(name, nullptr, nullptr, &status);
++      if (demangled && status == 0)
++        name = demangled;
++#endif
++      if (iterator->size) {
++        Module::Function* func = new Module::Function(
++            module->AddStringToPool(name), iterator->value);
++        func->ranges.push_back(Module::Range(iterator->value, iterator->size));
++        if (!module->AddFunction(func))
++          delete func;
+       }
++#if !defined(__ANDROID__)  // Android NDK doesn't provide abi::__cxa_demangle.
++      free(demangled);
+ #endif
+-      module->AddExtern(std::move(ext));
+     }
+     ++iterator;
+   }
+diff --git a/src/common/module.cc b/src/common/module.cc
+index 1c36c24..cf2f06b 100644
+--- a/src/common/module.cc
++++ b/src/common/module.cc
+@@ -202,6 +202,14 @@ bool Module::AddFunction(Function* function) {
+   function_addresses_.emplace(function->address);
+   std::pair<FunctionSet::iterator, bool> ret = functions_.insert(function);
+   if (!ret.second && (*ret.first != function)) {
++    Function* existing_function = *ret.first;
++    if (existing_function->lines.empty() && !function->lines.empty()) {
++      functions_.erase(ret.first);
++      delete existing_function;
++      functions_.insert(function);
++      return true;
++    }
++
+     // Free the duplicate that was not inserted because this Module
+     // now owns it.
+     return false;
+@@ -419,9 +427,22 @@ bool Module::Write(std::ostream& stream, SymbolData symbol_data, bool preserve_l
+         return ReportError();
+     }
+     // Write out functions and their inlines and lines.
++    FunctionSet::const_iterator group_end = functions_.begin();
++    bool group_has_lines = false;
+     for (FunctionSet::const_iterator func_it = functions_.begin();
+          func_it != functions_.end(); ++func_it) {
+       Function* func = *func_it;
++      if (func_it == group_end) {
++        group_has_lines = false;
++        while (group_end != functions_.end() &&
++               (*group_end)->address == func->address) {
++          group_has_lines |= !(*group_end)->lines.empty();
++          ++group_end;
++        }
++      }
++      if (func->lines.empty() && group_has_lines)
++        continue;
++
+       vector<Line>::iterator line_it = func->lines.begin();
+       for (auto range_it = func->ranges.cbegin();
+            range_it != func->ranges.cend(); ++range_it) {

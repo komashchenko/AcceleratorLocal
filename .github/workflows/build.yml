@@ -1,0 +1,112 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+    paths-ignore:
+      - LICENSE
+      - README.md
+  pull_request:
+    paths-ignore:
+      - LICENSE
+      - README.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+jobs:
+  build-linux:
+    name: Linux / ${{ matrix.preset }}
+    runs-on: ubuntu-latest
+    container: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest-container-runtime-depot
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [Debug, RelWithDebInfo, Release]
+    defaults:
+      run:
+        shell: bash
+    env:
+      CC: clang-21
+      CXX: clang++-21
+      BUILD_PRESET: ${{ matrix.preset }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install Clang 21
+        run: |
+          wget -qO /usr/share/keyrings/llvm-snapshot.asc https://apt.llvm.org/llvm-snapshot.gpg.key
+          echo "deb [signed-by=/usr/share/keyrings/llvm-snapshot.asc] https://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-21 main" > /etc/apt/sources.list.d/llvm.list
+          apt-get update
+          apt-get install -y --no-install-recommends clang-21 ninja-build
+
+      - name: Build environment
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          cat /etc/os-release
+          cmake --version
+          ninja --version
+          "$CC" --version
+          "$CXX" --version
+          git submodule status --recursive
+
+      - name: Build
+        run: |
+          cmake --preset "$BUILD_PRESET"
+          cmake --build --preset "$BUILD_PRESET" --parallel "$(nproc)"
+
+      - name: Package artifact
+        run: tar -C "out/$BUILD_PRESET/package" -czf "linux-$BUILD_PRESET.tar.gz" addons
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-${{ matrix.preset }}
+          path: linux-${{ matrix.preset }}.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [build-linux]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: linux-*
+          path: artifacts
+
+      - name: Package release
+        run: |
+          mkdir -p release
+          cp artifacts/linux-Release/linux-Release.tar.gz "release/AcceleratorLocal-${GITHUB_REF_NAME}.tar.gz"
+          cp artifacts/linux-RelWithDebInfo/linux-RelWithDebInfo.tar.gz "release/AcceleratorLocal-${GITHUB_REF_NAME}-relwithdebinfo.tar.gz"
+
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: release/*.tar.gz
+          fail_on_unmatched_files: true

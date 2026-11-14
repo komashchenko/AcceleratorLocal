@@ -1,0 +1,47 @@
+diff --git a/src/processor/stackwalk_common.cc b/src/processor/stackwalk_common.cc
+--- a/src/processor/stackwalk_common.cc
++++ b/src/processor/stackwalk_common.cc
+@@ -241,9 +241,18 @@ static void PrintStackContents(const std::string& indent,
+   int word_length = GetWordLength(cpu);
+   uint64_t stack_begin = GetStackPointer(frame, cpu);
+   uint64_t stack_end = GetStackPointer(prev_frame, cpu);
+-  if (!word_length || !stack_begin || !stack_end)
++  if (!word_length || !memory || !stack_begin || stack_end <= stack_begin ||
++      stack_begin < memory->GetBase())
+     return;
+ 
++  uint64_t stack_offset = stack_begin - memory->GetBase();
++  if (stack_offset >= memory->GetSize())
++    return;
++
++  uint64_t stack_size = std::min(stack_end - stack_begin,
++                                 memory->GetSize() - stack_offset);
++  stack_end = stack_begin + stack_size;
++
+   // Print stack contents.
+   printf("\n%sStack contents:", indent.c_str());
+   const int kBytesPerRow = 16;
+@@ -1067,10 +1076,19 @@ static void PrintStack(const CallStack* stack, const std::string& cpu,
+     printf("\n    Found by: %s\n", frame->trust_description().c_str());
+ 
+     // Print stack contents.
+-    if (output_stack_contents && frame_index + 1 < frame_count) {
+-      const std::string indent("    ");
+-      PrintStackContents(indent, frame, stack->frames()->at(frame_index + 1),
+-                         cpu, memory, modules, resolver);
++    if (output_stack_contents &&
++        frame->trust != StackFrame::FRAME_TRUST_INLINE) {
++      int next_frame_index = frame_index + 1;
++      while (next_frame_index < frame_count &&
++             stack->frames()->at(next_frame_index)->trust ==
++                 StackFrame::FRAME_TRUST_INLINE) {
++        ++next_frame_index;
++      }
++      if (next_frame_index < frame_count) {
++        const std::string indent("    ");
++        PrintStackContents(indent, frame, stack->frames()->at(next_frame_index),
++                           cpu, memory, modules, resolver);
++      }
+     }
+   }
+ }

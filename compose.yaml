@@ -1,0 +1,17 @@
+services:
+  build:
+    build: .
+    platform: linux/amd64
+    working_dir: /workspace
+    network_mode: none
+    environment:
+      BUILD_PRESET: "${BUILD_PRESET:-RelWithDebInfo}"
+      BUILD_JOBS: "${BUILD_JOBS:-4}"
+    volumes:
+      - .:/workspace
+    command:
+      - bash
+      - -ec
+      - |
+        cmake --preset "$$BUILD_PRESET"
+        cmake --build --preset "$$BUILD_PRESET" --parallel "$$BUILD_JOBS"

@@ -1,0 +1,71 @@
+diff --git a/src/common/dwarf_cfi_to_module.cc b/src/common/dwarf_cfi_to_module.cc
+index c9f4707..765e6a2 100644
+--- a/src/common/dwarf_cfi_to_module.cc
++++ b/src/common/dwarf_cfi_to_module.cc
+@@ -295,30 +295,12 @@ bool DwarfCFIToModule::End() {
+ 
+ std::string DwarfCFIToModule::Architecture() { return module_->architecture(); }
+ 
+-void DwarfCFIToModule::Reporter::UnnamedRegister(size_t offset, int reg) {
+-  fprintf(stderr, "%s, section '%s': "
+-          "the call frame entry at offset 0x%zx refers to register %d,"
+-          " whose name we don't know\n",
+-          file_.c_str(), section_.c_str(), offset, reg);
+-}
++void DwarfCFIToModule::Reporter::UnnamedRegister(size_t, int) {}
+ 
+-void DwarfCFIToModule::Reporter::UndefinedNotSupported(size_t offset,
+-                                                       const std::string& reg) {
+-  fprintf(stderr, "%s, section '%s': "
+-          "the call frame entry at offset 0x%zx sets the rule for "
+-          "register '%s' to 'undefined', but the Breakpad symbol file format"
+-          " cannot express this\n",
+-          file_.c_str(), section_.c_str(), offset, reg.c_str());
+-}
++void DwarfCFIToModule::Reporter::UndefinedNotSupported(
++    size_t, const std::string&) {}
+ 
+ void DwarfCFIToModule::Reporter::ExpressionsNotSupported(
+-    size_t offset, const std::string& reg) {
+-  fprintf(stderr, "%s, section '%s': "
+-          "the call frame entry at offset 0x%zx uses a DWARF expression to"
+-          " describe how to recover register '%s', "
+-          " but this translator cannot yet translate DWARF expressions to"
+-          " Breakpad postfix expressions\n",
+-          file_.c_str(), section_.c_str(), offset, reg.c_str());
+-}
++    size_t, const std::string&) {}
+ 
+ } // namespace google_breakpad
+diff --git a/src/common/dwarf_cu_to_module.cc b/src/common/dwarf_cu_to_module.cc
+index 787f6c9..0cff755 100644
+--- a/src/common/dwarf_cu_to_module.cc
++++ b/src/common/dwarf_cu_to_module.cc
+@@ -1095,11 +1095,7 @@ void DwarfCUToModule::WarningReporter::UnnamedFunction(uint64_t offset) {
+           filename_.c_str(), offset);
+ }
+ 
+-void DwarfCUToModule::WarningReporter::DemangleError(const std::string& input) {
+-  CUHeading();
+-  fprintf(stderr, "%s: warning: failed to demangle %s\n",
+-          filename_.c_str(), input.c_str());
+-}
++void DwarfCUToModule::WarningReporter::DemangleError(const std::string&) {}
+ 
+ void DwarfCUToModule::WarningReporter::UnhandledInterCUReference(
+     uint64_t offset, uint64_t target) {
+diff --git a/src/common/linux/dump_symbols.cc b/src/common/linux/dump_symbols.cc
+index 615aecd..f9f179f 100644
+--- a/src/common/linux/dump_symbols.cc
++++ b/src/common/linux/dump_symbols.cc
+@@ -1041,10 +1041,6 @@ bool LoadSymbols(const std::string& obj_file, const bool big_endian,
+   }
+ 
+   if (!found_debug_info_section) {
+-    fprintf(stderr, "%s: file contains no debugging information"
+-            " (no \".stab\" or \".debug_info\" sections)\n",
+-            obj_file.c_str());
+-
+     // Failed, but maybe there's a .gnu_debuglink section?
+     if (read_gnu_debug_link) {
+       const Shdr* gnu_debuglink_section

@@ -1,0 +1,4 @@
+# Sources are bind-mounted by Compose, not copied into the image.
+*
+!Dockerfile
+!.dockerignore
